@@ -6,14 +6,47 @@
 # [] Also do not forget to create your own functions to get this shitty functions/methods
 # [] We can use other methods in cookbook to clean the text
 # #-------------------------------------------------------------------------------------------
+import os
+import nltk
+import pandas as pd
+import re
+
+from time import process_time
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
 from nltk.corpus import sentiwordnet as swn
 from nltk import sent_tokenize, word_tokenize, pos_tag
-import re
-lemmatizer = WordNetLemmatizer()
+from nltk.stem.snowball import SnowballStemmer
 
-#-------------------------------------------------------------FUNCTIONS-------------------------------------------------
+lemmatizer = WordNetLemmatizer()
+stemmer = SnowballStemmer('english')
+corpus_words = set(nltk.corpus.words.words())
+
+
+# #-------------------------------------------------------------FUNCTIONS-------------------------------------------------
+
+
+def clean_data(data):
+    data = data[~data.condition.str.contains(" users found this comment helpful.", na=False)]
+    data = data[data.duplicated('condition', keep=False)]
+    data["review"] = data["review"].apply(clean_reviews)
+    return data
+
+
+def clean_reviews(raw_review):
+    letters_only = re.sub('[^a-zA-Z]', ' ', raw_review)
+    # print('Letters only:' + letters_only)
+    meaningful_words = " ".join(w for w in nltk.wordpunct_tokenize(letters_only) if w.lower() in corpus_words or not w.isalpha())
+    # print('Meaningful words:' + meaningful_words)
+    return meaningful_words
+
+
+def create_sentiment_column(data):
+    # data["sentiment"] = data["review"].swifter.apply(sentiment_sentiwordnet)
+    data["sentiment"] = data["review"].apply(sentiment_sentiwordnet)
+    return data
+
+
 def replace(word, pos=None):
     antonyms = set()
 
@@ -64,35 +97,35 @@ def penn_to_wn(tag):
 
 def sentiment_sentiwordnet(text):
     raw_sentences = sent_tokenize(text)
-    print("Raw_sentences:")
-    print(raw_sentences)
+    # print("Raw_sentences:")
+    # print(raw_sentences)
     sentiment = 0
     tokens_count = 0
 
     for raw_sentence in raw_sentences:
         raw_sentence = replace_negations(raw_sentence) #Replacing Negations with Antonyms (Python 3 Text Processing with NLTK 3 Cookbook)
         tagged_sentence = pos_tag(word_tokenize(raw_sentence))
-        print("Tagged_sentence:")
-        print(tagged_sentence)
+        # print("Tagged_sentence:")
+        # print(tagged_sentence)
 
         for word, tag in tagged_sentence:
             wn_tag = penn_to_wn(tag)
             if wn_tag not in (wn.NOUN, wn.ADJ, wn.ADV):
                 continue
-            print("Wn_tag:")
-            print(wn_tag)
+            # print("Wn_tag:")
+            # print(wn_tag)
 
             lemma = lemmatizer.lemmatize(word, pos=wn_tag)
             if not lemma:
                 continue
-            print("Lemma:")
-            print(lemma)
+            # print("Lemma:")
+            # print(lemma)
 
             synsets = wn.synsets(lemma, pos=wn_tag)
             if not synsets:
                 continue
-            print("Synets:")
-            print(synsets)
+            # print("Synets:")
+            # print(synsets)
 
             synset = synsets[0]
             swn_synset = swn.senti_synset(synset.name())
@@ -105,29 +138,42 @@ def sentiment_sentiwordnet(text):
     if tokens_count == 0:
         return 0
     sentiment = sentiment/tokens_count
-    print("Sentiment = "+ str(sentiment))
+    # print("Sentiment = "+ str(sentiment))
     if sentiment >= 0.01:
         return 1
     if sentiment <= -0.01:
         return -1
     return 0
 
-#----------------------------------------------------------END: FUNCTIONS-----------------------------------------------
-#----------------------------------------------READ DATA / CREATE TRAIN & TEST SETS-------------------------------------
+# #----------------------------------------------------------END: FUNCTIONS---------------------------------------------
+# #----------------------------------------------READ DATA / CREATE TRAIN & TEST SETS-----------------------------------
 
-# # print(os.listdir("resources/drugReviewRawData"))
-# #
-# # train = pd.read_csv('resources/drugReviewRawData/rawTrain.csv')
-# # print(train.head(5))
-# # print(train.shape)
-# # print(train["review"][:10])
-#-------------------------------------------END: READ DATA / CREATE TRAIN & TEST SETS-----------------------------------
-
-# input = "If I could give it a 0, I would absolutely do so.  Started at 50mg, and felt WIRED.  Wanted to get up and clean the house!  Bumped it to 100mg, less wired, but still wide awake all night.  Bumped to 150, with the same lack of effect.  MD informed me after this dose it becomes less effective for sleep, so why even bother.  15 years of trying different sleep medications and alternatives, and this, I can say for sure, was the LEAST effective I have ever come across.  At it&#039;s low price point, feel free to give it a try, and maybe you will be luckier?  Everyone&#039;s sleep conditions are different.  But if you get hyper after benadryl, expect the same reaction to this drug."
-# print(sentiment_sentiwordnet(input))
-
-#print(replace_negations('MD informed me after this dose it becomes less effective for sleep, so why even bother.'))
-
-print(sentiment_sentiwordnet('it is effective.'))
-print('---------------------------------------------------------------------------------')
-print(sentiment_sentiwordnet('it is less effective.'))
+# print(os.listdir("resources/drugReviewRawData"))
+# start = process_time()
+# print("------------READ DATA STARTED-------------")
+# train = pd.read_csv('resources/drugReviewRawData/rawTrain.csv',usecols = ['drugName','condition','review','rating']).dropna(how = 'any', axis = 0)
+# # train = pd.read_csv('CleanedTrainWithoutSentiment.csv')
+# end = process_time()
+# print("Elapsed time for reading the train data in seconds:",end-start)
+# print("--------------READ DATA END---------------")
+#
+# start = process_time()
+# print("------------CLEAN DATA STARTED------------")
+# train = clean_data(train)
+# end = process_time()
+# print("Elapsed time for cleaning the train data in seconds:",end-start)
+# print("---------------CLEAN DATA END-------------")
+#
+# train.to_csv('CleanedTrainWithoutSentiment.csv', index=False)
+#
+#
+# start = process_time()
+# print("--------CREATE SENTIMENT STARTED----------")
+# train = create_sentiment_column(train).drop(columns="review")
+# end = process_time()
+# print("Elapsed time for creating the sentiment column in seconds:",end-start)
+# print("-----------CREATE SENTIMENT END-----------")
+#
+# train.to_csv('CleanedTrainWithSentiment.csv', index=False)
+# print(train.shape)
+# #-----------------------------------------END: READ DATA / CREATE TRAIN & TEST SETS-----------------------------------
