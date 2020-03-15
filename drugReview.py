@@ -115,9 +115,9 @@ def sentiment_sentiwordnet(text):
 #----------------------------------------------------------END: FUNCTIONS-----------------------------------------------
 #----------------------------------------------READ DATA / CREATE TRAIN & TEST SETS-------------------------------------
 
-# # print(os.listdir("resources/rawData"))
+# # print(os.listdir("resources/drugReviewRawData"))
 # #
-# # train = pd.read_csv('resources/rawData/rawTrain.csv')
+# # train = pd.read_csv('resources/drugReviewRawData/rawTrain.csv')
 # # print(train.head(5))
 # # print(train.shape)
 # # print(train["review"][:10])
