@@ -17,6 +17,11 @@ from nltk.corpus import wordnet as wn
 from nltk.corpus import sentiwordnet as swn
 from nltk import sent_tokenize, word_tokenize, pos_tag
 from nltk.stem.snowball import SnowballStemmer
+from sklearn.metrics import accuracy_score
+from nltk import word_tokenize
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.pipeline import Pipeline
+from sklearn.svm import LinearSVC
 
 lemmatizer = WordNetLemmatizer()
 stemmer = SnowballStemmer('english')
@@ -145,6 +150,32 @@ def sentiment_sentiwordnet(text):
         return -1
     return 0
 
+
+def normalize_ratings(row):
+    if row.rating > 7:
+        return 1
+    elif row.rating < 4:
+        return -1
+    else :
+        return 0
+
+
+def result_based_sentiwordnet(testSet):
+    pred_y = testSet["review"].apply(sentiment_sentiwordnet)
+    accuracy = accuracy_score(testSet.normalized_ratings, pred_y)
+    print("Accuracy for sentiwordnet result:")
+    print(accuracy)
+
+
+def result_based_automated_sentiment_analyzer(trainSet, testSet):
+    clf = Pipeline([('vectorizer', CountVectorizer(analyzer="word", ngram_range=(1, 2),
+                                                   tokenizer=word_tokenize, max_features=10000)),
+                    ('classifier', LinearSVC())])
+
+    clf = clf.fit(trainSet.review, trainSet.normalized_ratings)
+    score = clf.score(testSet.review, testSet.normalized_ratings)
+    print("Accuracy for automated sentiment analyzer result:")
+    print(score)
 # #----------------------------------------------------------END: FUNCTIONS---------------------------------------------
 # #----------------------------------------------READ DATA / CREATE TRAIN & TEST SETS-----------------------------------
 
@@ -176,4 +207,28 @@ def sentiment_sentiwordnet(text):
 #
 # train.to_csv('CleanedTrainWithSentiment.csv', index=False)
 # print(train.shape)
+
+# start = process_time()
+# print("------------READ CleanedTrainWithSentiment DATA STARTED-------------")
+# train = pd.read_csv('CleanedTrainWithSentiment.csv',usecols = ['rating','sentiment']).dropna(how = 'any', axis = 0)
+# end = process_time()
+# print("Elapsed time for reading the train data in seconds:",end-start)
+# print("--------------READ CleanedTrainWithSentiment DATA END---------------")
+
+start = process_time()
+print("------------READ CleanedTrainWithoutSentiment DATA STARTED-------------")
+train = pd.read_csv('CleanedTrainWithoutSentiment.csv',usecols = ['review','rating']).dropna(how = 'any', axis = 0)
+end = process_time()
+print("Elapsed time for reading the train data in seconds:",end-start)
+print("--------------READ CleanedTrainWithoutSentiment DATA END---------------")
+
+train["normalized_ratings"] = train.apply(normalize_ratings, axis=1)
+train = train.drop(['rating'], axis = 1)
+trainSet=train.sample(frac=0.8,random_state=200) #random state is a seed value
+testSet=train.drop(trainSet.index)
+
 # #-----------------------------------------END: READ DATA / CREATE TRAIN & TEST SETS-----------------------------------
+
+result_based_sentiwordnet(testSet)
+result_based_automated_sentiment_analyzer(trainSet,testSet)
+
