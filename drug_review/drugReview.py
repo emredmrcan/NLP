@@ -1,9 +1,9 @@
 # #-------------------------------DEV NOTES
-# [] Clean the data set
+# [X] Clean the data set
 # [X] So we need pos tagging and understand sentences by words if it is verb,........
 # [X] #Replacing Negations with Antonyms (We can add 'never' as well)
-# [] Then make senti_synsets and create new column with it
-# [] Also do not forget to create your own functions to get this shitty functions/methods
+# [X] Then make senti_synsets and create new column with it
+# [X] Also do not forget to create your own functions to get this functions/methods
 # [] We can use other methods in cookbook to clean the text
 # #-------------------------------------------------------------------------------------------
 import os
@@ -33,7 +33,7 @@ corpus_words = set(nltk.corpus.words.words())
 
 def clean_data(data):
     data = data[~data.condition.str.contains(" users found this comment helpful.", na=False)]
-    data = data[data.duplicated('condition', keep=False)]
+    data = data[data.duplicated('condition', keep=False)] #Remove unique conditions
     data["review"] = data["review"].apply(clean_reviews)
     return data
 
