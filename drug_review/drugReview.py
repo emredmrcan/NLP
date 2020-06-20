@@ -106,7 +106,7 @@ def sentiment_sentiwordnet(text):
 
         for word, tag in tagged_sentence:
             wn_tag = penn_to_wn(tag)
-            lemma = lemmatizer.lemmatize(word, pos=wn_tag)
+            lemma = lemmatizer.lemmatize(stemmer.stem(word), pos=wn_tag)
             if not lemma:
                 continue
 
